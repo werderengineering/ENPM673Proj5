@@ -6,10 +6,6 @@ import imutils
 import os
 import random
 
-
-
-
-
 print('Imports Complete')
 
 print('CV2 version')
@@ -17,7 +13,8 @@ print(cv2.__version__)
 
 flag = False
 prgRun = True
-flag_trackingFeature = True
+
+
 
 def main(prgRun):
     # start file
@@ -25,8 +22,6 @@ def main(prgRun):
 
     prgRun = False
     return prgRun
-
-
 
 
 print('Function Initializations complete')
