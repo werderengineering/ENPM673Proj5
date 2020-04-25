@@ -27,7 +27,7 @@ def main(prgRun):
     print("Run")
     # Hard input stand-ins
     directory = "./Oxford_dataset/stereo/centre/"
-    FixImagery=True
+    FixImagery=False
     ###########################
     # Soft inputs
     # This is a pain
@@ -52,12 +52,38 @@ def main(prgRun):
         ###########################
         # Add Functions here
 
+    # 1. Point correspondence
+        p1 = np.array([
+            [0, 1],
+            [1, 1],
+            [2, 5],
+            [3, 5],
+            [4, 1],
+            [5, 1],
+            [5, 5],
+            [6, 5],
+        ])
 
+        p2 = p1 + 2
 
+    # 2. Est fund Matrix w/ ransac
+    #     2a. Center and scale to 8 point
+    #     2b. Est Fund mat via ransac
+    #     2c. Enforce rank 2 contraint
 
+        F=computeFMatrix(p1, p2)
 
-
-
+    # 3. Fin e matrix from F with calibration params
+    #
+    # 4. Decompe E into T and R
+    #
+    # 5. Find T and R solutions (cherality) use T and R giving largest  positive depth vals
+    #
+    # 6. plot pos of cam center based on rot and tans
+    #
+    #
+    #
+    #
 
 
 
