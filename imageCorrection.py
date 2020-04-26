@@ -21,7 +21,8 @@ def correctImages(directory,LUT):
         if i % 100 == 0:
             print(i, '/', len(imageList))
         frameDir = directory + '/' + imageList[i]
-        frame = cv2.imread(frameDir)
+        frame = cv2.imread(frameDir, 0)
+        frame = cv2.cvtColor(frame, cv2.COLOR_BayerGR2BGR)
         frame = UndistortImage(frame, LUT)
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         frameset.append(frame)
