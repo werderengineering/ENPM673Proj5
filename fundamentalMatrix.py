@@ -10,7 +10,7 @@ def enforceRank(var):
 
 
 def computeFMatrix(p1, p2):
-
+    #
     # p1 = p1 / np.linalg.norm(p1)
     # p2 = p2 / np.linalg.norm(p2)
 

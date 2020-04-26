@@ -12,6 +12,7 @@ from Oxford_dataset.ReadCameraModel import *
 from Oxford_dataset.UndistortImage import *
 from imageCorrection import *
 from fundamentalMatrix import *
+from featureMatch import *
 
 print('Imports Complete')
 
@@ -42,61 +43,55 @@ def main(prgRun):
 
     ###########################
     fx, fy, cx, cy, G_camera_image, LUT = ReadCameraModel('./Oxford_dataset/model')
+    K = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]])
 
     if FixImagery:
         correctImages(directory, LUT)
 
-
+    print('\nUnpickling video data')
     frameset = openVar('CorrectedFrames')
+    print('\nVideo Unpickled')
 
     for i, frame in enumerate(frameset):
         ###########################
         # Add Functions here
+        img1=frame.copy()
+        if i>19:
 
-    # 1. Point correspondence
-        p1 = np.array([
-            [0, 1],
-            [1, 1],
-            [2, 5],
-            [3, 5],
-            [4, 1],
-            [5, 1],
-            [5, 5],
-            [6, 5],
-        ])
 
-        p2 = p1 + 2
+            # 1. Point correspondence
+            p1,p2=MatchFeatures(img1,img2)
 
-    # 2. Est fund Matrix w/ ransac
-    #     2a. Center and scale to 8 point
-    #     2b. Est Fund mat via ransac
-    #     2c. Enforce rank 2 contraint
 
-        F=computeFMatrix(p1, p2)
 
-    # 3. Fin e matrix from F with calibration params
-    #
-    # 4. Decompe E into T and R
-    #
-    # 5. Find T and R solutions (cherality) use T and R giving largest  positive depth vals
-    #
-    # 6. plot pos of cam center based on rot and tans
-    #
-    #
-    #
-    #
+            # 2. Est fund Matrix w/ ransac
+            #     2a. Center and scale to 8 point
+            #     2b. Est Fund mat via ransac
+            #     2c. Enforce rank 2 contraint
+            print('\n\nNEW DATA\n\n')
+            F=computeFMatrix(p1, p2)
+
+            # 3. Fin e matrix from F with calibration params
+            #
+            # 4. Decompe E into T and R
+            #
+            # 5. Find T and R solutions (cherality) use T and R giving largest  positive depth vals
+            #
+            # 6. plot pos of cam center based on rot and tans
+
+            ###########################
+            # cv2.imshow('img1', img1)
+            # cv2.imshow('img2', img2)
+            # if cv2.waitKey(25) & 0xFF == ord('q'):
+            #     cv2.destroyAllWindows()
+
+        img2 = img1.copy()
 
 
 
 
 
 
-
-
-        ###########################
-        cv2.imshow('Video', frame)
-        if cv2.waitKey(25) & 0xFF == ord('q'):
-            cv2.destroyAllWindows()
 
 
     prgRun = False
