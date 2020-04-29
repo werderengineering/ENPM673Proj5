@@ -7,12 +7,12 @@ import sys
 import random
 import pickle
 
-
 from Oxford_dataset.ReadCameraModel import *
 from Oxford_dataset.UndistortImage import *
 from imageCorrection import *
 from fundamentalMatrix import *
 from featureMatch import *
+from findCameraPose import *
 
 print('Imports Complete')
 
@@ -23,13 +23,12 @@ flag = False
 prgRun = True
 
 
-
 def main(prgRun):
     # start file
     print("Run")
     # Hard input stand-ins
     directory = "./Oxford_dataset/stereo/centre/"
-    FixImagery=False
+    FixImagery = False
     ###########################
     # Soft inputs
     # This is a pain
@@ -45,6 +44,11 @@ def main(prgRun):
     fx, fy, cx, cy, G_camera_image, LUT = ReadCameraModel('./Oxford_dataset/model')
     K = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]])
 
+    Origin = np.asarray([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+    PPose = np.asarray([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+    PoseList = []
+    PoseList.append(Origin[:2, 3])
+
     if FixImagery:
         correctImages(directory, LUT)
 
@@ -55,44 +59,37 @@ def main(prgRun):
     for i, frame in enumerate(frameset):
         ###########################
         # Add Functions here
-        img1=frame.copy()
-        if i>19:
-
-
+        img1 = frame.copy()
+        if i > 19:
             # 1. Point correspondence
-            p1,p2=MatchFeatures(img1,img2)
-
-
+            p1, p2 = MatchFeatures(img1, img2)
 
             # 2. Est fund Matrix w/ ransac
             #     2a. Center and scale to 8 point
             #     2b. Est Fund mat via ransac
             #     2c. Enforce rank 2 contraint
-            print('\n\nNEW DATA\n\n')
-            F=computeFMatrix(p1, p2)
+            # print('\n\nNEW DATA\n\n')
+            F = computeFMatrix(p1, p2)
 
             # 3. Fin e matrix from F with calibration params
-            #
+            EM = essentialMatrixFromFundamentalMatrix(F, K)
             # 4. Decompe E into T and R
-            #
             # 5. Find T and R solutions (cherality) use T and R giving largest  positive depth vals
-            #
-            # 6. plot pos of cam center based on rot and tans
+            RM, TM = extractCameraPoseFromEssntialMatrix(EM)
 
+            # 6. plot pos of cam center based on rot and tans
+            NPose = np.matmul(PPose, TM)
+            Position = np.matmul(NPose, Origin)
+            PoseList.append(Position[:2, 3])
+            print(Position)
             ###########################
             # cv2.imshow('img1', img1)
             # cv2.imshow('img2', img2)
             # if cv2.waitKey(25) & 0xFF == ord('q'):
             #     cv2.destroyAllWindows()
 
+        PPose = NPose
         img2 = img1.copy()
-
-
-
-
-
-
-
 
     prgRun = False
     return prgRun

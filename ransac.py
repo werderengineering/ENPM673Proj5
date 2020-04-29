@@ -103,16 +103,16 @@ def ransacGo(data_x, data_y, p1x, p2x):
                 print('Aprroximation Achieved')
                 # print('a,:', atst)
                 # print('b,:', btst)
-                plt.scatter(data_x, yeq)
-                plt.scatter(data_x, data_y)
-                plt.ylabel('Y axis')
-                plt.xlabel('X axis')
+                # plt.scatter(data_x, yeq)
+                # plt.scatter(data_x, data_y)
+                # plt.ylabel('Y axis')
+                # plt.xlabel('X axis')
                 # plt.axis([0, 500, -75, 400])
 
                 ypoints = (atst * data_x) + btst
 
-                plt.plot(data_x, ypoints)
-                plt.show()
+                # plt.plot(data_x, ypoints)
+                # plt.show()
 
                 p1y = atst * p1x + btst
                 p2y = atst * p2x + btst
