@@ -14,7 +14,8 @@ def openVar(varprint):
         var= pickle.load(f)
     return var
 
-def correctImages(directory,LUT):
+def correctImages(directory, LUT):
+    print('WARNING: THIS WILL TAKE A WHILE')
     imageList = imagefiles(directory)
     frameset = []
     for i in range(len(imageList)):

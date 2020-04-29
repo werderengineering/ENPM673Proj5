@@ -28,7 +28,7 @@ def main(prgRun):
     print("Run")
     # Hard input stand-ins
     directory = "./Oxford_dataset/stereo/centre/"
-    FixImagery = False
+    FixImagery = True
     ###########################
     # Soft inputs
     # This is a pain
@@ -88,7 +88,7 @@ def main(prgRun):
             # if cv2.waitKey(25) & 0xFF == ord('q'):
             #     cv2.destroyAllWindows()
 
-        PPose = NPose
+            PPose = NPose
         img2 = img1.copy()
 
     prgRun = False
