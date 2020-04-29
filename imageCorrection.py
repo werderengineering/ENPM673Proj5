@@ -11,7 +11,7 @@ def saveVar(var,varprint):
 
 def openVar(varprint):
     with open(varprint, 'rb') as f:
-        var= pickle.load(f)
+        var = pickle.load(f)
     return var
 
 def correctImages(directory, LUT):

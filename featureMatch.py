@@ -1,7 +1,6 @@
 import cv2
 import os
 import numpy as np
-
 # for filename in os.listdir('./Oxford_dataset/stereo/centre/'):
 #     print(filename)
 

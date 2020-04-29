@@ -32,6 +32,7 @@ def essentialMatrixFromFundamentalMatrix(fundamentalMatrix, cameraIntrinsicMatri
     Sigma = np.diag(Sigma)
     if np.std(essentialMatrix - np.dot(np.dot(U, Sigma), V_transposed)) > 0.001:   # check svd works as it supposed to be
         print("Essential Matrix original is \n" + str(essentialMatrix))
+        print("U is\n" + str(U) + "\nSigma is\n" + str(Sigma) + "\nV_transposed is\n" + str(V_transposed))
         print("SVD of Essential Matrix product \n" + str(np.dot(np.dot(U, Sigma), V_transposed)))
         raise ValueError("Essential Matrix and SVD of Essential Matrix product doesn't match")
     essentialMatrix = np.dot(np.dot(U, Sigma_new), V_transposed)

@@ -28,7 +28,7 @@ def main(prgRun):
     print("Run")
     # Hard input stand-ins
     directory = "./Oxford_dataset/stereo/centre/"
-    FixImagery = True
+    FixImagery = False
     ###########################
     # Soft inputs
     # This is a pain
@@ -48,6 +48,11 @@ def main(prgRun):
     PPose = np.asarray([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
     PoseList = []
     PoseList.append(Origin[:2, 3])
+
+    rigidTransformation_fromInitial = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+    # fig = plt.figure()
+    plt.show()
+
 
     if FixImagery:
         correctImages(directory, LUT)
@@ -70,26 +75,38 @@ def main(prgRun):
             #     2c. Enforce rank 2 contraint
             # print('\n\nNEW DATA\n\n')
             F = computeFMatrix(p1, p2)
+            # F, mask = cv2.findFundamentalMat(p1, p2, cv2.FM_RANSAC)
 
             # 3. Fin e matrix from F with calibration params
-            EM = essentialMatrixFromFundamentalMatrix(F, K)
+            # EM = essentialMatrixFromFundamentalMatrix(F, K)
             # 4. Decompe E into T and R
             # 5. Find T and R solutions (cherality) use T and R giving largest  positive depth vals
-            RM, TM = extractCameraPoseFromEssntialMatrix(EM)
+            rotation, translation = findSecondFrameCameraPoseFromFirstFrame(F, K, p1, p2)
 
             # 6. plot pos of cam center based on rot and tans
-            NPose = np.matmul(PPose, TM)
-            Position = np.matmul(NPose, Origin)
-            PoseList.append(Position[:2, 3])
-            print(Position)
+            # Position = np.matmul(NPose, Origin)
+            # PoseList.append(Position[:2, 3])
+            # print(Position)
             ###########################
             # cv2.imshow('img1', img1)
             # cv2.imshow('img2', img2)
             # if cv2.waitKey(25) & 0xFF == ord('q'):
             #     cv2.destroyAllWindows()
 
+            """start: form rigid body transformation matrix using R and T"""
+            rigidTransformation_fromLast = np.concatenate((rotation, translation), axis=1)
+            rigidTransformation_fromLast = np.concatenate((rigidTransformation_fromLast, np.array([[0, 0, 0, 1]])), axis=0)
+            rigidTransformation_fromInitial = np.dot(rigidTransformation_fromInitial, rigidTransformation_fromLast)
+            position = rigidTransformation_fromInitial[0:2, 2]
+            print(position)
+            """end"""
+            plt.scatter(position[0], -position[1], color='r')
+            plt.pause(1)
+
+            # PPose = NPose
             PPose = NPose
         img2 = img1.copy()
+
 
     prgRun = False
     return prgRun
