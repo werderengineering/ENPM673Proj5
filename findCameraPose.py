@@ -5,6 +5,15 @@ Created on Thu April 25 13:00:08 2020
 import numpy as np
 
 
+flag_DisambiguateCameraPose = True
+
+
+def homoTransformation(rotation, translation):
+    rigidTransformation = np.concatenate((rotation, translation), axis=1)
+    rigidTransformation = np.concatenate((rigidTransformation, np.array([[0, 0, 0, 1]])), axis=0)
+    return rigidTransformation
+
+
 def essentialMatrixFromFundamentalMatrix(fundamentalMatrix, cameraIntrinsicMatrix):
     """
     This function compute e essential matrix from F and K.
@@ -30,12 +39,13 @@ def essentialMatrixFromFundamentalMatrix(fundamentalMatrix, cameraIntrinsicMatri
     """correct the essential matrix using signal value decompose"""
     U, Sigma, V_transposed = np.linalg.svd(essentialMatrix)
     Sigma = np.diag(Sigma)
-    if np.std(essentialMatrix - np.dot(np.dot(U, Sigma), V_transposed)) > 0.001:   # check svd works as it supposed to be
+    if np.linalg.norm(essentialMatrix - np.matmul(np.matmul(U, Sigma), V_transposed)) > 1:   # check svd works as it supposed to be
         print("Essential Matrix original is \n" + str(essentialMatrix))
         print("U is\n" + str(U) + "\nSigma is\n" + str(Sigma) + "\nV_transposed is\n" + str(V_transposed))
-        print("SVD of Essential Matrix product \n" + str(np.dot(np.dot(U, Sigma), V_transposed)))
-        raise ValueError("Essential Matrix and SVD of Essential Matrix product doesn't match")
-    essentialMatrix = np.dot(np.dot(U, Sigma_new), V_transposed)
+        print("SVD of Essential Matrix product \n" + str(np.matmul(np.matmul(U, Sigma), V_transposed)))
+        # raise ValueError("Essential Matrix and SVD of Essential Matrix product doesn't match")
+        print("Essential Matrix and SVD of Essential Matrix product doesn't match")
+    essentialMatrix = np.matmul(np.matmul(U, Sigma_new), V_transposed)
     return essentialMatrix
 
 
@@ -62,6 +72,11 @@ def extractCameraPoseFromEssntialMatrix(essentialMatrix):
     """choose one camera pose and rotation matrix from four"""
     rotationMatrixes = [R1, R2, R3, R4]
     camerPosistions = [C1, C2, C3, C4]
+
+    for i in range(4):
+        if (np.linalg.det(rotationMatrixes[i]) < 0):
+            rotationMatrixes[i] = -rotationMatrixes[i]
+            camerPosistions[i] = -camerPosistions[i]
     assert R1.shape == (3, 3) and C1.shape == (3, 1)
     return rotationMatrixes, camerPosistions
 
@@ -95,26 +110,28 @@ def linearTriangulation(point_1, projectionMatrix_1, point_2, projectionMatrix_2
     return point_3D
 
 
-def DisambiguateCameraPose(projectionMatrix, cameraIntrinsicMatrix, points_firstFrame, points_secondFrame):
+def DisambiguateCameraPose(rigidTransfomation, cameraIntrinsicMatrix, points_firstFrame, points_secondFrame):
     """
     Given a camera pose configurations and their the 2D points correspondences, find how many points pass the cheirality condition
-    :param projectionMatrix:
+    :param rigidTransfomation:
     :param cameraIntrinsicMatrix:
     :param points_firstFrame:
     :param points_secondFrame:
     :return: number of correspondences pass the cheirality condition
     """
-    assert type(points_firstFrame) == type(points_secondFrame) == type(cameraIntrinsicMatrix) == type(projectionMatrix) == np.ndarray
+    assert type(points_firstFrame) == type(points_secondFrame) == type(cameraIntrinsicMatrix) == type(rigidTransfomation) == np.ndarray
     assert points_firstFrame.shape[0] == points_secondFrame.shape[0] == 2
     assert cameraIntrinsicMatrix.shape == (3, 3)
-    assert projectionMatrix.shape == (3, 4)
+    assert rigidTransfomation.shape == (3, 4)
     vote = 0
     rigidTransformation_toSelf = np.concatenate((np.eye(3), np.array([[0],[0],[0]])),axis=1)
     projectionMatrix_firstFrame = np.dot(cameraIntrinsicMatrix, rigidTransformation_toSelf)
     for point_1, point_2 in zip(points_firstFrame.T, points_secondFrame.T):
-        point_3D = linearTriangulation(point_1, projectionMatrix_firstFrame, point_2, projectionMatrix)
-        if point_3D[2, 0] - projectionMatrix[2, 3] > 0:     # the depth (z compound of 3D point)
+        projectionMatrix = np.matmul(cameraIntrinsicMatrix, rigidTransfomation)   # form a project matrix of second frame
+        point_3D = linearTriangulation(point_1, projectionMatrix_firstFrame, point_2, projectionMatrix)     # shape (4, 1)
+        if np.dot(rigidTransfomation[2, 0:3], point_3D[0:3, 0] - rigidTransfomation[2, 3]) > 0:     # the depth (z compound of 3D point)
             vote = vote+1
+    print("# of points passed cheirality condition check: " + str(vote))
     return vote
 
 
@@ -145,7 +162,6 @@ def findSecondFrameCameraPoseFromFirstFrame(fundamentalMatrix, cameraIntrinsicMa
     votes = np.zeros(4).astype(int)
     for i, (rotationMatrix, translationMatrix) in enumerate(zip(rotationMatrices, camerPosistions)):
         rigidTransfomation = np.concatenate((rotationMatrix, translationMatrix), axis=1)  # rigid transformation
-        projectionMatrix = np.dot(cameraIntrinsicMatrix, rigidTransfomation)   # form a project matrix of second frame
-        votes[i] = DisambiguateCameraPose(projectionMatrix, cameraIntrinsicMatrix, points_firstFrame, points_secondFrame)
+        votes[i] = DisambiguateCameraPose(rigidTransfomation, cameraIntrinsicMatrix, points_firstFrame, points_secondFrame)
     correct_index = votes.argmax()
     return rotationMatrices[correct_index], camerPosistions[correct_index]

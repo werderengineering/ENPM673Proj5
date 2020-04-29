@@ -19,9 +19,10 @@ print('Imports Complete')
 print('CV2 version')
 print(cv2.__version__)
 
-flag = False
+flag = True
 prgRun = True
-
+customFun_fundamentalMatrix = False
+customFun_cameraPose = True
 
 def main(prgRun):
     # start file
@@ -48,8 +49,10 @@ def main(prgRun):
     PPose = np.asarray([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
     PoseList = []
     PoseList.append(Origin[:2, 3])
+    pose_initial = np.array([[0],[0],[0],[1]])
 
     rigidTransformation_fromInitial = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+
     # fig = plt.figure()
     plt.show()
 
@@ -74,37 +77,45 @@ def main(prgRun):
             #     2b. Est Fund mat via ransac
             #     2c. Enforce rank 2 contraint
             # print('\n\nNEW DATA\n\n')
-            F = computeFMatrix(p1, p2)
-            # F, mask = cv2.findFundamentalMat(p1, p2, cv2.FM_RANSAC)
+            if customFun_fundamentalMatrix:
+                F = computeFMatrix(p1, p2)
+            else:
+                F, mask = cv2.findFundamentalMat(p1, p2, cv2.FM_RANSAC)
+                p1 = p1[mask.ravel() == 1]
+                p2 = p2[mask.ravel() == 1]
 
             # 3. Fin e matrix from F with calibration params
-            # EM = essentialMatrixFromFundamentalMatrix(F, K)
             # 4. Decompe E into T and R
             # 5. Find T and R solutions (cherality) use T and R giving largest  positive depth vals
-            rotation, translation = findSecondFrameCameraPoseFromFirstFrame(F, K, p1, p2)
-
+            if customFun_cameraPose:
+                rotation, translation = findSecondFrameCameraPoseFromFirstFrame(F, K, p1, p2)
+            else:
+                E = K.T @ F @ K
+                retval, rotation, translation, mask = cv2.recoverPose(E, p1, p2, K)
             # 6. plot pos of cam center based on rot and tans
+            """start: form rigid body transformation matrix using R and T"""
+            rigidTransformation_fromLast = homoTransformation(rotation, translation)
+            rigidTransformation_fromInitial = rigidTransformation_fromInitial @ rigidTransformation_fromLast
+            position = np.dot(rigidTransformation_fromInitial, pose_initial)
+            """end"""
+            plt.scatter(position[0], -position[1], color='r')
+            plt.pause(0.001)
+
             # Position = np.matmul(NPose, Origin)
             # PoseList.append(Position[:2, 3])
             # print(Position)
+
             ###########################
             # cv2.imshow('img1', img1)
             # cv2.imshow('img2', img2)
             # if cv2.waitKey(25) & 0xFF == ord('q'):
             #     cv2.destroyAllWindows()
 
-            """start: form rigid body transformation matrix using R and T"""
-            rigidTransformation_fromLast = np.concatenate((rotation, translation), axis=1)
-            rigidTransformation_fromLast = np.concatenate((rigidTransformation_fromLast, np.array([[0, 0, 0, 1]])), axis=0)
-            rigidTransformation_fromInitial = np.dot(rigidTransformation_fromInitial, rigidTransformation_fromLast)
-            position = rigidTransformation_fromInitial[0:2, 2]
-            print(position)
-            """end"""
-            plt.scatter(position[0], -position[1], color='r')
-            plt.pause(1)
+            if flag:
+                print("#" + str(i))
+                print(position)
 
             # PPose = NPose
-            PPose = NPose
         img2 = img1.copy()
 
 
