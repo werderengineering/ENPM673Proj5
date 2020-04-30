@@ -13,6 +13,9 @@ from imageCorrection import *
 from fundamentalMatrix import *
 from featureMatch import *
 from findCameraPose import *
+from comparable import *
+
+# from useBuiltinFunction import *
 
 print('Imports Complete')
 
@@ -21,8 +24,11 @@ print(cv2.__version__)
 
 flag = True
 prgRun = True
+customFun_MatchFeat = False
 customFun_fundamentalMatrix = False
-customFun_cameraPose = True
+customFun_cameraPose = False
+customFun_Homo = False
+
 
 def main(prgRun):
     # start file
@@ -49,13 +55,19 @@ def main(prgRun):
     PPose = np.asarray([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
     PoseList = []
     PoseList.append(Origin[:2, 3])
-    pose_initial = np.array([[0],[0],[0],[1]])
+    pose_initial = np.array([[0], [0], [0], [1]])
 
     rigidTransformation_fromInitial = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
 
+    listPose = []
+    homo1 = np.identity(4)
+    t1 = np.array([[0, 0, 0, 1]])
+    t1 = t1.T
+
+    sift = cv2.xfeatures2d.SIFT_create()
+
     # fig = plt.figure()
     plt.show()
-
 
     if FixImagery:
         correctImages(directory, LUT)
@@ -68,21 +80,33 @@ def main(prgRun):
         ###########################
         # Add Functions here
         img1 = frame.copy()
+
+        ######
+        # Change this value to make th test longer or shorter. Good comparison is 500
+
+        if i > 200:
+            break
         if i > 19:
+
+            if i % 50 == 0:
+                print(i)
             # 1. Point correspondence
-            p1, p2 = MatchFeatures(img1, img2)
+            if customFun_MatchFeat:
+
+                p1, p2 = matchUntil(img2, img1, sift)
+
+            else:
+                p1, p2 = getcomparablePoints(img2, img1, sift)
 
             # 2. Est fund Matrix w/ ransac
             #     2a. Center and scale to 8 point
             #     2b. Est Fund mat via ransac
             #     2c. Enforce rank 2 contraint
-            # print('\n\nNEW DATA\n\n')
+
             if customFun_fundamentalMatrix:
                 F = computeFMatrix(p1, p2)
             else:
-                F, mask = cv2.findFundamentalMat(p1, p2, cv2.FM_RANSAC)
-                p1 = p1[mask.ravel() == 1]
-                p2 = p2[mask.ravel() == 1]
+                F = getcomparableF(p1, p2)
 
             # 3. Fin e matrix from F with calibration params
             # 4. Decompe E into T and R
@@ -90,34 +114,34 @@ def main(prgRun):
             if customFun_cameraPose:
                 rotation, translation = findSecondFrameCameraPoseFromFirstFrame(F, K, p1, p2)
             else:
-                E = K.T @ F @ K
-                retval, rotation, translation, mask = cv2.recoverPose(E, p1, p2, K)
+                rotation, translation = getcomparableRT(F, K, p1, p2)
+
+                # rotation,translation=poseMatrix(img1,img2,K,sift)
+
             # 6. plot pos of cam center based on rot and tans
             """start: form rigid body transformation matrix using R and T"""
-            rigidTransformation_fromLast = homoTransformation(rotation, translation)
-            rigidTransformation_fromInitial = rigidTransformation_fromInitial @ rigidTransformation_fromLast
-            position = np.dot(rigidTransformation_fromInitial, pose_initial)
+            if customFun_Homo:
+                rigidTransformation_fromLast = homoTransformation(rotation, translation)
+                rigidTransformation_fromInitial = rigidTransformation_fromInitial @ rigidTransformation_fromLast
+                p1 = np.dot(rigidTransformation_fromInitial, pose_initial)
+            else:
+                homo2 = getcomprableHomo(rotation, translation)
+                homo1 = np.dot(homo1, homo2)
+                p1 = np.dot(homo1, t1)
             """end"""
-            plt.scatter(position[0], -position[1], color='r')
-            plt.pause(0.001)
 
-            # Position = np.matmul(NPose, Origin)
-            # PoseList.append(Position[:2, 3])
-            # print(Position)
+            plt.scatter(p1[0][0], -p1[2][0], color='r')
+            listPose.append([p1[0][0], -p1[2][0]])
 
             ###########################
             # cv2.imshow('img1', img1)
             # cv2.imshow('img2', img2)
-            # if cv2.waitKey(25) & 0xFF == ord('q'):
+            # if cv2.waitKey(5) & 0xFF == ord('q'):
             #     cv2.destroyAllWindows()
 
-            if flag:
-                print("#" + str(i))
-                print(position)
-
-            # PPose = NPose
         img2 = img1.copy()
 
+    plt.show()
 
     prgRun = False
     return prgRun

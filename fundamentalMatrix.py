@@ -16,21 +16,30 @@ def computeFMatrix(p1, p2):
 
     p = np.vstack((p1, p2))
 
-    p1, p2 = ransacGo(p[:,0], p[:,1],p1[:,0],p2[:,0])
+    # p1, p2 = ransacGo(p[:,0], p[:,1],p1[:,0],p2[:,0])
 
     A = np.zeros((p1.shape[1], 9))
     for i in range(p1.shape[1]):
-        A[i] = [
-            p2[0, i] * p1[0, i],
-            p2[0, i] * p1[1, i],
-            p2[0, i],
-            p2[1, i] * p1[0, i],
-            p2[1, i] * p1[1, i],
-            p2[1, i],
-            p1[0, i],
-            p2[1, i],
-            1
-        ]
+        # A[i] = [
+        #     p2[0, i] * p1[0, i],
+        #     p2[0, i] * p1[1, i],
+        #     p2[0, i],
+        #     p2[1, i] * p1[0, i],
+        #     p2[1, i] * p1[1, i],
+        #     p2[1, i],
+        #     p1[0, i],
+        #     p2[1, i],
+        #     1
+        # ]
+
+        A[i] = [p1[i][0] * p2[i][0],
+                p1[i][0] * p2[i][1],
+                p1[i][0],
+                p1[i][1] * p2[i][0],
+                p1[i][1] * p2[i][1],
+                p1[i][1],
+                p2[i][0],
+                p2[i][1], 1]
 
 
     u, s, v = np.linalg.svd(A)

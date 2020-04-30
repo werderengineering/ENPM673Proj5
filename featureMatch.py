@@ -9,7 +9,9 @@ img2 = cv2.imread('./Oxford_dataset/stereo/centre/1399381446454665.png')
 
 
 def MatchFeatures(img1, img2):
-    orb = cv2.ORB_create(nfeatures=1000)
+    # orb = cv2.ORB_create(nfeatures=1000)
+    orb = cv2.ORB_create()
+
     kp1, des1 = orb.detectAndCompute(img1, None)
     kp2, des2 = orb.detectAndCompute(img2, None)
 
@@ -31,7 +33,7 @@ def MatchFeatures(img1, img2):
     search_params = {}
     flann = cv2.FlannBasedMatcher(index_params, search_params)
     matches = flann.knnMatch(des1, des2, k=2)
-    knn_image = cv2.drawMatchesKnn(img1, kp1, img2, kp2, matches, None)
+    # knn_image = cv2.drawMatchesKnn(img1, kp1, img2, kp2, matches, None)
 
     pointsmatched = []
     pointsfrom1 = []
@@ -47,9 +49,9 @@ def MatchFeatures(img1, img2):
     p2A = np.int32(pointsfrom2)
 
     indexLin = np.arange(0, len(p1A), 1)
-    indexshuf = np.random.shuffle(indexLin)
-
-    Indx8=indexLin[0:50]
+    # indexshuf = np.random.shuffle(indexLin)
+    #
+    Indx8 = indexLin[0:]
 
     p1 = p1A[Indx8, :]
     p2 = p2A[Indx8, :]
@@ -68,3 +70,30 @@ def MatchFeatures(img1, img2):
     # cv2.waitKey(0)
 
     return p1, p2
+
+
+def matchUntil(img1, img2, sift):
+    kp1, des1 = sift.detectAndCompute(img1, None)
+    kp2, des2 = sift.detectAndCompute(img2, None)
+
+    FLANN_INDEX_KDTREE = 0
+    index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
+    search_params = dict(checks=50)
+
+    flann = cv2.FlannBasedMatcher(index_params, search_params)
+    matches = flann.knnMatch(des1, des2, k=2)
+
+    pointsmatched = []
+    pointsfrom1 = []
+    pointsfrom2 = []
+
+    for i, (s, p) in enumerate(matches):
+        if s.distance < 1 * p.distance:
+            pointsmatched.append(s)
+            pointsfrom2.append(kp2[s.trainIdx].pt)
+            pointsfrom1.append(kp1[s.queryIdx].pt)
+
+    pointsfrom1 = np.int32(pointsfrom1)
+    pointsfrom2 = np.int32(pointsfrom2)
+
+    return pointsfrom1, pointsfrom2

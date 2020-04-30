@@ -5,21 +5,17 @@ import os
 from Oxford_dataset.ReadCameraModel import *
 from Oxford_dataset.UndistortImage import *
 
-
 l = []
 frames1 = []
 
 
 def poseMatrix(distort1, distort2, k):
-    kp1, des1 = orb.detectAndCompute(distort1, None)
-    kp2, des2 = orb.detectAndCompute(distort2, None)
+    kp1, des1 = sift.detectAndCompute(distort1, None)
+    kp2, des2 = sift.detectAndCompute(distort2, None)
 
-#FLANN matcher
-    index_params = dict(algorithm=6,
-                        table_number=6,
-                        key_size=12,
-                        multi_probe_level=2)
-    search_params = {}
+    FLANN_INDEX_KDTREE = 0
+    index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
+    search_params = dict(checks=50)
 
     flann = cv2.FlannBasedMatcher(index_params, search_params)
     matches = flann.knnMatch(des1, des2, k=2)
@@ -41,10 +37,9 @@ def poseMatrix(distort1, distort2, k):
     pointsfrom1 = pointsfrom1[mask.ravel() == 1]
     pointsfrom2 = pointsfrom2[mask.ravel() == 1]
 
-    E = k.T @ F @ k
+    E = np.matmul(k.T, np.matmul(F, k))
     retval, R, t, mask = cv2.recoverPose(E, pointsfrom1, pointsfrom2, k)
     return R, t
-
 
 def cameraMatrix(file):
     frames1 = []
@@ -54,7 +49,6 @@ def cameraMatrix(file):
     K = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]])
 
     return K, LUT
-
 
 def undistortImg(img):
     colorimage = cv2.cvtColor(img, cv2.COLOR_BayerGR2BGR)
@@ -70,8 +64,9 @@ def Homogenousmatrix(R, t):
     h = np.vstack((h, a))
     return h
 
-#####################replace SIFT by ORB
-orb = cv2.ORB_create()
+
+####################replace SIFT by ORB
+sift = cv2.xfeatures2d.SIFT_create()
 file = "Oxford_dataset/stereo/centre/"
 k, LUT = cameraMatrix(file)
 
@@ -81,8 +76,8 @@ for frames in os.listdir(file):
 homo1 = np.identity(4)
 t1 = np.array([[0, 0, 0, 1]])
 t1 = t1.T
-
-for index in range(19, 50):  #  len(frames1) - 1 if read all frames
+length = 1700
+for index in range(19, length):  # len(frames1) - 1 if read all frames
     img1 = cv2.imread("%s%s" % (file, frames1[index]), 0)
     distort1 = undistortImg(img1)
 
@@ -95,7 +90,21 @@ for index in range(19, 50):  #  len(frames1) - 1 if read all frames
     homo1 = np.dot(homo1, homo2)
     p1 = np.dot(homo1, t1)
 
-    plt.scatter(p1[0][0], -p1[2][0], color='r')
+    # plt.scatter(p1[0][0], -p1[2][0], color='r')
     l.append([p1[0][0], -p1[2][0]])
 
-plt.show()
+    if index % 10 == 0:
+        print(index)
+
+saveVar(l, 'visited points')
+
+for index in range(19, length):  # len(frames1) - 1 if read all frames
+    img1 = cv2.imread("%s%s" % (file, frames1[index]), 0)
+
+    plt.scatter(l[index - 19][0], l[index - 19][1], color='r')
+
+    plt.pause(0.00001)
+
+    cv2.imshow('img1', img1)
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        cv2.destroyAllWindows()
