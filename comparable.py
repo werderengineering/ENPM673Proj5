@@ -5,6 +5,7 @@ from Oxford_dataset.UndistortImage import *
 from imageCorrection import *
 import cv2
 import numpy as np
+import random
 
 l = []
 frames1 = []
@@ -43,7 +44,7 @@ def getcomparableF(pointsfrom1, pointsfrom2):
     pointsfrom1 = pointsfrom1[mask.ravel() == 1]
     pointsfrom2 = pointsfrom2[mask.ravel() == 1]
 
-    return F
+    return F, pointsfrom1, pointsfrom2
 
 
 def getcomparableRT(F, k, pointsfrom1, pointsfrom2):
@@ -119,3 +120,4 @@ def getcomprableHomo(R, t):
 #     cv2.imshow('img1', img1)
 #     if cv2.waitKey(2) & 0xFF == ord('q'):
 #         cv2.destroyAllWindows()
+

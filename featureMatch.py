@@ -48,13 +48,7 @@ def MatchFeatures(img1, img2):
     p1A = np.int32(pointsfrom1)
     p2A = np.int32(pointsfrom2)
 
-    indexLin = np.arange(0, len(p1A), 1)
-    # indexshuf = np.random.shuffle(indexLin)
-    #
-    Indx8 = indexLin[0:]
 
-    p1 = p1A[Indx8, :]
-    p2 = p2A[Indx8, :]
 
     # Select points to match
     # features = []
@@ -69,7 +63,7 @@ def MatchFeatures(img1, img2):
     # cv2.imshow('Matches', imgs)
     # cv2.waitKey(0)
 
-    return p1, p2
+    return p1A, p2A
 
 
 def matchUntil(img1, img2, sift):
@@ -82,18 +76,32 @@ def matchUntil(img1, img2, sift):
 
     flann = cv2.FlannBasedMatcher(index_params, search_params)
     matches = flann.knnMatch(des1, des2, k=2)
+    knn_image = cv2.drawMatchesKnn(img1, kp1, img2, kp2, matches, None)
 
     pointsmatched = []
     pointsfrom1 = []
     pointsfrom2 = []
 
     for i, (s, p) in enumerate(matches):
-        if s.distance < 1 * p.distance:
+        if s.distance < .8 * p.distance:
             pointsmatched.append(s)
             pointsfrom2.append(kp2[s.trainIdx].pt)
             pointsfrom1.append(kp1[s.queryIdx].pt)
 
     pointsfrom1 = np.int32(pointsfrom1)
     pointsfrom2 = np.int32(pointsfrom2)
+
+    # Select points to match
+    # features = []
+    # for m, n in matches:
+    #     if m.distance < 0.5 * n.distance:
+    #         features.append([m])
+    # match_img = cv2.drawMatchesKnn(img1, kp1, img2, kp2, features, None, flags=2)
+    #
+    # imgs = np.vstack([knn_image, match_img])
+    # cv2.namedWindow("Matches",0);
+    # cv2.resizeWindow("Matches", 1000, 600);
+    # cv2.imshow('Matches', imgs)
+    # cv2.waitKey(0)
 
     return pointsfrom1, pointsfrom2
