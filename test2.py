@@ -103,30 +103,33 @@ def estimate_fundamental_matrix(points_a, points_b):
     ###########################################################################
     ###########################################################################
     N = points_a.shape[0]
+
     m = np.average(points_a, axis=0)
-    mdash = np.average(points_b, axis=0)
     m_mean = points_a - m.reshape(1, 2)
-    mdash_mean = points_b - mdash.reshape(1, 2)
     s_sum = np.sum((m_mean) ** 2, axis=None)
-    sdash_sum = np.sum((mdash_mean) ** 2, axis=None)
-    s = (s_sum / (2 * N)) ** 0.5
-    sinv = 1 / s
-    sdash = (sdash_sum / (2 * N)) ** 0.5
-    sdinv = 1 / sdash
+    sinv = 1 / ((s_sum / (2 * N)) ** 0.5)
     x = m_mean * sinv
+
+    mdash = np.average(points_b, axis=0)
+    mdash_mean = points_b - mdash.reshape(1, 2)
+    sdash_sum = np.sum((mdash_mean) ** 2, axis=None)
+    sdinv = 1 / ((sdash_sum / (2 * N)) ** 0.5)
     y = mdash_mean * sdinv
-    Y = np.ones((N, 9))
-    Y[:, 0:2] = x * y[:, 0].reshape(N, 1)
-    Y[:, 2] = y[:, 0]
-    Y[:, 3:5] = x * y[:, 1].reshape(N, 1)
-    Y[:, 5] = y[:, 1]
-    Y[:, 6:8] = x
+
+    A = np.ones((N, 9))
+    A[:, 0:2] = x * y[:, 0].reshape(N, 1)
+    A[:, 2] = y[:, 0]
+    A[:, 3:5] = x * y[:, 1].reshape(N, 1)
+    A[:, 5] = y[:, 1]
+    A[:, 6:8] = x
+
     u, s, vt = np.linalg.svd(Y, full_matrices=True)
     F = vt[8, :].reshape(3, 3)
     U, S, Vt = np.linalg.svd(F, full_matrices=True)
     S[2] = 0
     Smat = np.diag(S)
     F = np.dot(U, np.dot(Smat, Vt))
+
     T = np.zeros((3, 3))
     T[0, 0] = sinv
     T[1, 1] = sinv
@@ -140,6 +143,7 @@ def estimate_fundamental_matrix(points_a, points_b):
     Tdash[2, 2] = 1
     Tdash[0, 2] = -sdinv * mdash[0]
     Tdash[1, 2] = -sdinv * mdash[1]
+
     F = np.dot(np.transpose(Tdash), np.dot(F, T))
     ###########################################################################
     ###########################################################################

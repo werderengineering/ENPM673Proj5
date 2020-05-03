@@ -1,8 +1,27 @@
 from __main__ import *
 import numpy as np
 import cv2
-from test2 import *
+# from test2 import *
 from sklearn.preprocessing import normalize
+
+
+def Normalize(points, N):
+    avg = np.average(points, axis=0)
+    mean = points - avg.reshape(1, 2)
+    sum = np.sum((mean) ** 2, axis=None)
+    std = 1 / ((sum / (2 * N)) ** 0.5)
+    NormP = mean * std
+    return NormP, std, avg
+
+
+def DeNormalize(std, mean):
+    X = np.zeros((3, 3))
+    X[0, 0] = std
+    X[1, 1] = std
+    X[2, 2] = 1
+    X[0, 2] = -std * mean[0]
+    X[1, 2] = -std * mean[1]
+    return X
 
 
 def getrand8(p1, p2):
@@ -24,60 +43,42 @@ def enforceRank(var):
     # if F[2,2]!=1:
     #     print('WARNING BAD F: \n',F)
 
-    return F / F[2, 2]
+    return F
 
 
 def createFund(p1, p2):
-    n = p1.shape[0]
+    N = p1.shape[0]
 
-    A = np.zeros((n, 9))
-    for i in range(n):
-        A[i] = [p1[i][0] * p2[i][0],
-                p1[i][0] * p2[i][1],
-                p1[i][0],
-                p1[i][1] * p2[i][0],
-                p1[i][1] * p2[i][1],
-                p1[i][1],
-                p2[i][0],
-                p2[i][1], 1]
+    # NORMALIZE
+    x, xstd, xavg = Normalize(p1, N)
+    y, ystd, yavg = Normalize(p2, N)
 
-    U, S, V = np.linalg.svd(A)
-    F = V[-1].reshape(3, 3)
-    # if np.any(np.abs(p1-p2))>5:
-    #     print (p1,p2)
-    #
-    # A = np.zeros((len(p1), 9))
-    # for i in range(0, len(p1)):
-    #
+    A = np.ones((N, 9))
+    A[:, 0:2] = x * y[:, 0].reshape(N, 1)
+    A[:, 2] = y[:, 0]
+    A[:, 3:5] = x * y[:, 1].reshape(N, 1)
+    A[:, 5] = y[:, 1]
+    A[:, 6:8] = x
 
-    # x_1 = p1[i][0]
-    # y_1 = p1[i][1]
-    # x_2 = p2[i][0]
-    # y_2 = p2[i][1]
-    #
-    # A[i] = np.array([x_1 * x_2, x_2 * y_1, x_2, y_2 * x_1, y_2 * y_1, y_2, x_1, y_1, 1])
+    u, s, vt = np.linalg.svd(A, full_matrices=True)
+    F = vt[8, :].reshape(3, 3)
 
-    # A[i] = [x1[0, i] * x2[0, i], x1[0, i] * x2[1, i], x1[0, i] * x2[2, i],
-    #         x1[1, i] * x2[0, i], x1[1, i] * x2[1, i], x1[1, i] * x2[2, i],
-    #         x1[2, i] * x2[0, i], x1[2, i] * x2[1, i], x1[2, i] * x2[2, i]]
-    # u, s, v = np.linalg.svd(A, full_matrices=True)
+    # ENFORCE RANK
+    F = enforceRank(F)
 
-    # F = v[-1].reshape(3, 3)
-    # u1, s1, v1 = np.linalg.svd(F)
-    # s2 = np.array([[s1[0], 0, 0], [0, s1[1], 0], [0, 0, 0]])
-    # F = np.matmul(np.matmul(u1, s2), v1)
+    # DENORMALIZE
+    X1 = DeNormalize(xstd, xavg)
+    X2 = DeNormalize(ystd, yavg)
 
-    # F = enforceRank(F)
-
-    U, S, V = np.linalg.svd(F)
-    S[2] = 0
-    S = np.diag(S)
-    F = np.dot(U, np.dot(S, V))
+    F = np.dot(X2.T, np.dot(F, X1))
 
     return F
 
 
 def computeFMatrix(p1, p2):
+    # P1=Prev
+    # P2=Cur
+
     eta = .5
     SinTotal = 0
     #
@@ -92,7 +93,7 @@ def computeFMatrix(p1, p2):
         p1H = np.append(p1, H1, axis=1)
         p2H = np.append(p2, H1, axis=1)
 
-        FC = EstimateFundamentalMatrix(p18, p28)
+        FC = createFund(p18, p28)
 
         Sin = 0
         mask = []
@@ -117,9 +118,7 @@ def computeFMatrix(p1, p2):
             p1o = p1[maskIn]
             p2o = p2[maskIn]
 
-    p18o, p28o = getrand8(p1o, p2o)
-
-    F = EstimateFundamentalMatrix(p18o, p28o)
+    F = createFund(p1o, p2o)
     # F = enforceRank(F)
     # print('#######################################################')
     # print('Inliers: ', SinTotal)

@@ -20,7 +20,7 @@ from comparable import *
 from Vizualization import *
 
 # from useBuiltinFunction import *
-from test_tim import *
+from test3 import *
 
 print('Imports Complete')
 
@@ -30,9 +30,10 @@ print(cv2.__version__)
 flag = True
 prgRun = True
 customFun_MatchFeat = True
-customFun_fundamentalMatrix = True
+customFun_fundamentalMatrix = False
 customFun_cameraPose = False
 customFun_Homo = True
+Saveoff = 'Allvisited points'
 
 JustViz = False
 
@@ -61,6 +62,20 @@ def main(prgRun):
     # else:
     #     print('Running Stereo Process')
     #     JustViz = False
+
+    # OpenCVYN = str.lower(input('\nUse OpenCV? Enter Yes if you just use openCV functions\n'))
+    # if OpenCVYN == 'yes':
+    #     customFun_MatchFeat = False
+    #     customFun_fundamentalMatrix = False
+    #     customFun_cameraPose = False
+    #     customFun_Homo = False
+    #     Saveoff = 'CV2Comparison'
+    # else:
+    #     customFun_MatchFeat = True
+    #     customFun_fundamentalMatrix = True
+    #     customFun_cameraPose = True
+    #     customFun_Homo = True
+    #     Saveoff = 'Allvisited points'
 
     ###########################
     fx, fy, cx, cy, G_camera_image, LUT = ReadCameraModel('./Oxford_dataset/model')
@@ -100,24 +115,23 @@ def main(prgRun):
         for i, frame in enumerate(frameset):
             ###########################
             # Add Functions here
-            img2 = frame.copy()
+            imgCur = frame.copy()
 
             ######
             # Change this value to make th test longer or shorter. Good comparison is 500
-            NFrames = 500
+            NFrames = 100
             # NFrames=len(frameset)
             if i > NFrames:
                 break
             if i > 19:
 
-                if i % 50 == 0 or i == 20:
+                if i % 10 == 0 or i == 20:
                     if i == 20:
                         Pframes = 20
                         pEpochT = startTime
                     else:
                         Pframes = i
                         pEpochT = epochTime
-
 
                     epochTime = time.time()
                     print('\nEpoch Time (s): ', str(datetime.timedelta(seconds=epochTime - pEpochT)))
@@ -128,16 +142,15 @@ def main(prgRun):
                         TotalTime = time.time() - startTime
                         RPF = (TotalTime / i) * NFrames
                         print('Estimated time to complete all desired frames: ', str(datetime.timedelta(seconds=RPF)))
-                        print('Estiamted time remaining: ', str(datetime.timedelta(seconds=RPF - TotalTime)))
+                        print('Estimated time remaining: ', str(datetime.timedelta(seconds=RPF - TotalTime)))
                 # 1. Point correspondence
 
-                # print(img1.shape)
+                # print(imgPrev.shape)
                 if customFun_MatchFeat:
 
-                    p1, p2 = matchUntil(img1, img2, sift)
-
+                    PointsPrev, PointsCur = matchUntil(imgPrev, imgCur, sift)
                 else:
-                    p1, p2 = getcomparablePoints(img1, img2, sift)
+                    PointsPrev, PointsCur = getcomparablePoints(imgPrev, imgCur, sift)
 
                 # 2. Est fund Matrix w/ ransac
                 #     2a. Center and scale to 8 point
@@ -145,41 +158,50 @@ def main(prgRun):
                 #     2c. Enforce rank 2 contraint
 
                 if customFun_fundamentalMatrix:
-                    F, p1, p2 = computeFMatrix(p1, p2)
-                    # F,p1,p2 = ransac_fundamental_matrix(p1, p2)
-                else:
-                    F, p1, p2 = getcomparableF(p1, p2)
+                    F, PointsPrev, PointsCur = computeFMatrix(PointsPrev, PointsCur)
 
-                # 3. Fin e matrix from F with calibration params
-                # 4. Decompe E into T and R
-                # 5. Find T and R solutions (cherality) use T and R giving largest  positive depth vals
+                else:
+                    F, PointsPrev, PointsCur = getcomparableF(PointsPrev, PointsCur)
+
                 if customFun_cameraPose:
-                    rotation, translation = findSecondFrameCameraPoseFromFirstFrame(F, K, p1, p2)
+                    # 3. Fin e matrix from F with calibration params
+                    essentialMatrix = essentialMatrixFromFundamentalMatrix(F, K)
+                    # 4. Decompe E into T and R
+                    rotations_fromLastToCurrent, translations_fromLastToCurrent = extractCameraPoseFromEssntialMatrix(
+                        essentialMatrix)
+                    # 5. Find T and R solutions (cherality) use T and R giving largest  positive depth vals
+                    # if customFun_cameraPose:
+                    rotation_fromLastToCurrent, translation_fromLastToCurrent, votes, index_maxVote = DisambiguateCameraPose(
+                        rotations_fromLastToCurrent, translations_fromLastToCurrent, K,
+                        np.float32(PointsCur),
+                        np.float32(PointsPrev))
                 else:
-                    rotation, translation = getcomparableRT(F, K, p1, p2)
+                    rotation_fromLastToCurrent, translation_fromLastToCurrent = getcomparableRT(F, K, PointsCur,
+                                                                                                PointsPrev)
 
-                    # rotation,translation=poseMatrix(img1,img2,K,sift)
+                    # rotation,translation=poseMatrix(imgPrev,imgCur,K,sift)
 
                 # 6. plot pos of cam center based on rot and tans
                 """start: form rigid body transformation matrix using R and T"""
                 if customFun_Homo:
-                    rigidTransformation_fromLast = homoTransformation(rotation, translation)
+                    rigidTransformation_fromLast = homoTransformation(rotation_fromLastToCurrent,
+                                                                      translation_fromLastToCurrent)
                     rigidTransformation_fromInitial = rigidTransformation_fromInitial @ rigidTransformation_fromLast
-                    p1 = np.dot(rigidTransformation_fromInitial, pose_initial)
+                    PointsPrev = np.dot(rigidTransformation_fromInitial, pose_initial)
                 else:
-                    homo2 = getcomprableHomo(rotation, translation)
+                    homo2 = getcomprableHomo(rotation_fromLastToCurrent, translation_fromLastToCurrent)
                     homo1 = np.dot(homo1, homo2)
-                    p1 = np.dot(homo1, t1)
+                    PointsPrev = np.dot(homo1, t1)
                 """end"""
 
-                listPose.append([p1[0][0], -p1[2][0]])
+                listPose.append([PointsPrev[0][0], -PointsPrev[2][0]])
 
-            img1 = img2.copy()
+            imgPrev = imgCur.copy()
 
         TotalTime = time.time() - startTime
         TPF = (TotalTime / i) * len(frameset)
         print('Estimated time to complete all frames: ', str(datetime.timedelta(seconds=TPF)))
-        saveVar(listPose, 'Allvisited points')
+        saveVar(listPose, Saveoff)
 
     if EndProgram == False:
         # playViz('Allvisited points','CV2Comparison', frameset)
