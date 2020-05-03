@@ -147,7 +147,8 @@ def findSecondFrameCameraPoseFromFirstFrame(fundamentalMatrix, cameraIntrinsicMa
                             sequentially corresponding to coordinates in first frame
     :return: the rotation and translation matrix between camera where it takes first and where it takes second frame
     """
-    assert type(fundamentalMatrix) == type(cameraIntrinsicMatrix) == type(points_firstFrame) == type(points_secondFrame) == np.ndarray
+    assert type(fundamentalMatrix) == type(cameraIntrinsicMatrix) == type(points_firstFrame) == type(
+        points_secondFrame) == np.ndarray
     assert points_firstFrame.shape[1] == points_firstFrame.shape[1] == 2
     assert fundamentalMatrix.shape == cameraIntrinsicMatrix.shape == (3, 3)
     """format data"""
@@ -155,13 +156,16 @@ def findSecondFrameCameraPoseFromFirstFrame(fundamentalMatrix, cameraIntrinsicMa
     points_secondFrame = np.insert(points_secondFrame.T, 3, 1, axis=1)
 
     """get essential matrix"""
-    essentialMatrix = essentialMatrixFromFundamentalMatrix(fundamentalMatrix, cameraIntrinsicMatrix)
+    # essentialMatrix = essentialMatrixFromFundamentalMatrix(fundamentalMatrix, cameraIntrinsicMatrix)
+    essentialMatrix = np.matmul(cameraIntrinsicMatrix.T, np.matmul(fundamentalMatrix, cameraIntrinsicMatrix))
     """get four possible rotation matrices and translation matrices"""
     rotationMatrices, camerPosistions = extractCameraPoseFromEssntialMatrix(essentialMatrix)
     """pick one of the four possible rotation matrices and translation matrices, using cheirality condition check"""
     votes = np.zeros(4).astype(int)
     for i, (rotationMatrix, translationMatrix) in enumerate(zip(rotationMatrices, camerPosistions)):
-        rigidTransfomation = np.concatenate((rotationMatrix, translationMatrix), axis=1)  # rigid transformation
-        votes[i] = DisambiguateCameraPose(rigidTransfomation, cameraIntrinsicMatrix, points_firstFrame, points_secondFrame)
+        rigidTransfomation = np.concatenate((rotationMatrix, translationMatrix), axis=1)  #
+        # rigid transformation
+        votes[i] = DisambiguateCameraPose(rigidTransfomation, cameraIntrinsicMatrix, points_firstFrame,
+                                          points_secondFrame)
     correct_index = votes.argmax()
     return rotationMatrices[correct_index], camerPosistions[correct_index]

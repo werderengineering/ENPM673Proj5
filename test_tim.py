@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from Oxford_dataset.ReadCameraModel import *
 from Oxford_dataset.UndistortImage import *
 from imageCorrection import *
-from numpy import vstack, diag, std, dot, mean, array, linalg, linspace, sqrt
+from numpy import vstack, diag, std, dot, mean, array, linalg, linspace, sqrt, zeros
 import random
 
 import numpy as np
@@ -23,20 +23,20 @@ sys.dont_write_bytecode = True
 # sift = cv2.xfeatures2d.SIFT_create()
 #
 #
-def compute_fundamental(x1, x2):
+def compute_fundamental(p1, p2):
     # this is for comparison against our F
-    n = x1.shape[0]
+    n = p1.shape[0]
     # build matrix for equations
     A = np.zeros((n, 9))
     for i in range(n):
-        A[i] = [x1[i][0] * x2[i][0],
-                x1[i][0] * x2[i][1],
-                x1[i][0],
-                x1[i][1] * x2[i][0],
-                x1[i][1] * x2[i][1],
-                x1[i][1],
-                x2[i][0],
-                x2[i][1], 1]
+        A[i] = [p1[i][0] * p2[i][0],
+                p1[i][0] * p2[i][1],
+                p1[i][0],
+                p1[i][1] * p2[i][0],
+                p1[i][1] * p2[i][1],
+                p1[i][1],
+                p2[i][0],
+                p2[i][1], 1]
     # compute linear least square solution
     U, S, V = np.linalg.svd(A)
     F = V[-1].reshape(3, 3)
@@ -402,7 +402,7 @@ def triangulate(x1, x2, P1, P2):
     return array(X).T
 
 
-def compute_fundamental(x1, x2):
+def compute_fundamental2(x1, x2):
     """    Computes the fundamental matrix from corresponding points
         (x1,x2 3*n arrays) using the 8 point algorithm.
         Each row in the A matrix below is constructed as

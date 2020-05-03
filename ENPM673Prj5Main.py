@@ -100,11 +100,11 @@ def main(prgRun):
         for i, frame in enumerate(frameset):
             ###########################
             # Add Functions here
-            img1 = frame.copy()
+            img2 = frame.copy()
 
             ######
             # Change this value to make th test longer or shorter. Good comparison is 500
-            NFrames = 100
+            NFrames = 500
             # NFrames=len(frameset)
             if i > NFrames:
                 break
@@ -112,9 +112,12 @@ def main(prgRun):
 
                 if i % 50 == 0 or i == 20:
                     if i == 20:
+                        Pframes = 20
                         pEpochT = startTime
                     else:
+                        Pframes = i
                         pEpochT = epochTime
+
 
                     epochTime = time.time()
                     print('\nEpoch Time (s): ', str(datetime.timedelta(seconds=epochTime - pEpochT)))
@@ -131,10 +134,10 @@ def main(prgRun):
                 # print(img1.shape)
                 if customFun_MatchFeat:
 
-                    p1, p2 = matchUntil(img2, img1, sift)
+                    p1, p2 = matchUntil(img1, img2, sift)
 
                 else:
-                    p1, p2 = getcomparablePoints(img2, img1, sift)
+                    p1, p2 = getcomparablePoints(img1, img2, sift)
 
                 # 2. Est fund Matrix w/ ransac
                 #     2a. Center and scale to 8 point
@@ -143,7 +146,7 @@ def main(prgRun):
 
                 if customFun_fundamentalMatrix:
                     F, p1, p2 = computeFMatrix(p1, p2)
-                    # F,p1,p2 = F_from_ransac(p1, p2)
+                    # F,p1,p2 = ransac_fundamental_matrix(p1, p2)
                 else:
                     F, p1, p2 = getcomparableF(p1, p2)
 
@@ -171,7 +174,7 @@ def main(prgRun):
 
                 listPose.append([p1[0][0], -p1[2][0]])
 
-            img2 = img1.copy()
+            img1 = img2.copy()
 
         TotalTime = time.time() - startTime
         TPF = (TotalTime / i) * len(frameset)
@@ -179,8 +182,8 @@ def main(prgRun):
         saveVar(listPose, 'Allvisited points')
 
     if EndProgram == False:
-        playViz('Allvisited points', frameset)
-        showTracking('Allvisited points')
+        # playViz('Allvisited points','CV2Comparison', frameset)
+        showTracking('Allvisited points', 'CV2Comparison')
 
     prgRun = False
     return prgRun

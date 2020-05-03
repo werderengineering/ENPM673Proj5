@@ -46,7 +46,7 @@ def getrand8(p1, p2):
     indexLin = np.arange(0, len(p1), 1)
     np.random.shuffle(indexLin)
 
-    Indx8 = indexLin[0:8]
+    Indx8 = indexLin[0:100]
 
     p1 = p1[Indx8, :]
     p2 = p2[Indx8, :]

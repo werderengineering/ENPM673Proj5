@@ -83,13 +83,13 @@ def matchUntil(img1, img2, sift):
     pointsfrom2 = []
 
     for i, (s, p) in enumerate(matches):
-        if s.distance < .8 * p.distance:
+        if s.distance < .7 * p.distance:
             pointsmatched.append(s)
             pointsfrom2.append(kp2[s.trainIdx].pt)
             pointsfrom1.append(kp1[s.queryIdx].pt)
 
-    pointsfrom1 = np.int32(pointsfrom1)
-    pointsfrom2 = np.int32(pointsfrom2)
+    pointsfrom1 = np.float32(pointsfrom1)
+    pointsfrom2 = np.float32(pointsfrom2)
 
     # Select points to match
     # features = []
