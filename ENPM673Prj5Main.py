@@ -20,7 +20,7 @@ from comparable import *
 from Vizualization import *
 
 # from useBuiltinFunction import *
-from test3 import *
+
 
 print('Imports Complete')
 
@@ -30,12 +30,12 @@ print(cv2.__version__)
 flag = True
 prgRun = True
 customFun_MatchFeat = True
-customFun_fundamentalMatrix = False
-customFun_cameraPose = False
+customFun_fundamentalMatrix = True
+customFun_cameraPose = True
 customFun_Homo = True
 Saveoff = 'Allvisited points'
 
-JustViz = False
+JustViz = True
 
 
 def main(prgRun):
@@ -46,36 +46,51 @@ def main(prgRun):
     FixImagery = False
     ###########################
     # Soft inputs
-    # This is a pain
 
-    # getdataYN = str.lower(input('Create a data set? Enter |yes| or |no|: '))
-    # if getdataYN == 'yes':
-    #     FixImagery = True
-    #
-    # directory = str(input(
-    #     'What is the name and directory of the folder with the images? Note, this should be entered as"./folder_name if on Windows". Example: ./Oxford_dataset/stereo/centre/: \n'))
+    getdataYN = str.lower(input('Create a data set? Enter |yes| or |no|: '))
+    if getdataYN == 'yes' or getdataYN == 'y':
+        FixImagery = True
 
-    # JustVizYN = str.lower(input('\nJust the visual? Enter Yes if you just want to see the last saved visual\n'))
-    #
-    # if JustVizYN == 'yes':
-    #     JustViz = True
-    # else:
-    #     print('Running Stereo Process')
-    #     JustViz = False
+    else:
+        FixImagery = False
 
-    # OpenCVYN = str.lower(input('\nUse OpenCV? Enter Yes if you just use openCV functions\n'))
-    # if OpenCVYN == 'yes':
-    #     customFun_MatchFeat = False
-    #     customFun_fundamentalMatrix = False
-    #     customFun_cameraPose = False
-    #     customFun_Homo = False
-    #     Saveoff = 'CV2Comparison'
-    # else:
-    #     customFun_MatchFeat = True
-    #     customFun_fundamentalMatrix = True
-    #     customFun_cameraPose = True
-    #     customFun_Homo = True
-    #     Saveoff = 'Allvisited points'
+    directory = str(input(
+        '\nWhat is the name and directory of the folder with the images? Note, this should be entered as"./folder_name if on Windows". Example: ./Oxford_dataset/stereo/centre/: \n'))
+
+    if directory == '':
+        directory = './Oxford_dataset/stereo/centre/'
+
+    print('Directoryu: ', directory)
+
+    JustVizYN = str.lower(input('\nJust the visual? Enter Yes if you just want to see the last saved visual\n'))
+
+    if JustVizYN == 'yes' or JustVizYN == 'y':
+        JustViz = True
+        ShowCompFile = 'AllPointsBI'
+        ShowCustFile = 'Big Run'
+    else:
+        print('Running Stereo Process')
+        JustViz = False
+
+        OpenCVYN = str.lower(input('\nUse OpenCV? Enter Yes if you just use openCV functions\n'))
+        if OpenCVYN == 'yes' or OpenCVYN == 'y':
+            customFun_MatchFeat = False
+            customFun_fundamentalMatrix = False
+            customFun_cameraPose = False
+            customFun_Homo = False
+            Saveoff = 'AllPointsBI'
+            ShowCompFile = Saveoff
+            ShowCustFile = 'Big Run'
+            print('This process will take approximately 2.5 hours')
+        else:
+            customFun_MatchFeat = True
+            customFun_fundamentalMatrix = True
+            customFun_cameraPose = True
+            customFun_Homo = True
+            Saveoff = 'Big Run'
+            ShowCompFile = 'AllPointsBI'
+            ShowCustFile = Saveoff
+            print('This process will take approximately 5 hours')
 
     ###########################
     fx, fy, cx, cy, G_camera_image, LUT = ReadCameraModel('./Oxford_dataset/model')
@@ -108,6 +123,14 @@ def main(prgRun):
         print("MISSING FRAMES\nPlease re-run and create the data set")
         EndProgram = True
 
+    ##############################
+    # Change this value to make th test longer or shorter. Good comparison is 500
+    # startframe = 1450
+    # NFrames = 1650
+
+    startframe = 19
+    NFrames = len(frameset) - 10
+
     if JustViz == False and EndProgram == False:
         startTime = time.time()
         print('Generating points. This will take a while')
@@ -117,16 +140,12 @@ def main(prgRun):
             # Add Functions here
             imgCur = frame.copy()
 
-            ######
-            # Change this value to make th test longer or shorter. Good comparison is 500
-            NFrames = 100
-            # NFrames=len(frameset)
             if i > NFrames:
                 break
-            if i > 19:
+            if i > startframe:
 
-                if i % 10 == 0 or i == 20:
-                    if i == 20:
+                if i % 50 == 0 or i == startframe + 1:
+                    if i == startframe + 1:
                         Pframes = 20
                         pEpochT = startTime
                     else:
@@ -138,11 +157,26 @@ def main(prgRun):
                     print('Total Time: ', str(datetime.timedelta(seconds=epochTime - startTime)))
                     print('Epoch: ', i)
 
-                    if i != 20:
+                    if i != startframe + 1:
                         TotalTime = time.time() - startTime
                         RPF = (TotalTime / i) * NFrames
                         print('Estimated time to complete all desired frames: ', str(datetime.timedelta(seconds=RPF)))
                         print('Estimated time remaining: ', str(datetime.timedelta(seconds=RPF - TotalTime)))
+                        try:
+                            saveVar(listPose, 'Progress')
+                            showTracking('Progress', 'AllPointsBI', startframe, i)
+                            plt.show(block=False)
+                            plt.pause(2)
+                            plt.close()
+
+
+                        except:
+                            saveVar(listPose, 'Progress')
+                            showTracking('Progress', 'AllPointsBI', startframe, NFrames)
+                            plt.show(block=False)
+                            plt.pause(2)
+                            plt.close()
+
                 # 1. Point correspondence
 
                 # print(imgPrev.shape)
@@ -158,7 +192,7 @@ def main(prgRun):
                 #     2c. Enforce rank 2 contraint
 
                 if customFun_fundamentalMatrix:
-                    F, PointsPrev, PointsCur = computeFMatrix(PointsPrev, PointsCur)
+                    F, PointsPrev, PointsCur = computeFMatrix(PointsCur, PointsPrev)
 
                 else:
                     F, PointsPrev, PointsCur = getcomparableF(PointsPrev, PointsCur)
@@ -176,8 +210,8 @@ def main(prgRun):
                         np.float32(PointsCur),
                         np.float32(PointsPrev))
                 else:
-                    rotation_fromLastToCurrent, translation_fromLastToCurrent = getcomparableRT(F, K, PointsCur,
-                                                                                                PointsPrev)
+                    rotation_fromLastToCurrent, translation_fromLastToCurrent = getcomparableRT(F, K,
+                                                                                                PointsPrev, PointsCur)
 
                     # rotation,translation=poseMatrix(imgPrev,imgCur,K,sift)
 
@@ -204,8 +238,10 @@ def main(prgRun):
         saveVar(listPose, Saveoff)
 
     if EndProgram == False:
-        # playViz('Allvisited points','CV2Comparison', frameset)
-        showTracking('Allvisited points', 'CV2Comparison')
+        playViz(ShowCustFile, ShowCompFile, frameset, startframe, NFrames)
+        showTracking(ShowCustFile, ShowCompFile, startframe, NFrames)
+        plt.show()
+        print('Please click on the graph to end the program')
 
     prgRun = False
     return prgRun

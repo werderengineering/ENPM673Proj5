@@ -32,8 +32,8 @@ def getcomparablePoints(distort1, distort2, sift):
             pointsfrom2.append(kp2[s.trainIdx].pt)
             pointsfrom1.append(kp1[s.queryIdx].pt)
 
-    pointsfrom1 = np.int32(pointsfrom1)
-    pointsfrom2 = np.int32(pointsfrom2)
+    pointsfrom1 = np.float32(pointsfrom1)
+    pointsfrom2 = np.float32(pointsfrom2)
 
     return pointsfrom1, pointsfrom2
 

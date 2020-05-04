@@ -72,14 +72,14 @@ def createFund(p1, p2):
 
     F = np.dot(X2.T, np.dot(F, X1))
 
-    return F
+    return F / F[2, 2]
 
 
 def computeFMatrix(p1, p2):
     # P1=Prev
     # P2=Cur
 
-    eta = .5
+    eta = 1
     SinTotal = 0
     #
     for i in range(200):
@@ -135,8 +135,9 @@ def computeFMatrix(p1, p2):
     # # print('\nF Diff: \n', np.abs(FCV - F))
     #
     # print('\nCv2 Mask:\n', CV2mask[:100].T)
-    # print('\nCust Mask:\n', mask[:100])
+    # print('\nCust Mask:\n', mask[:100])n
 
+    F = enforceRank(F)
     hold = 1
 
     return F, p1o, p2o

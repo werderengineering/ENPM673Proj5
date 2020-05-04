@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import os
 from Oxford_dataset.ReadCameraModel import *
 from Oxford_dataset.UndistortImage import *
+from imageCorrection import *
+from Vizualization import *
 
 l = []
 frames1 = []
@@ -76,7 +78,7 @@ for frames in os.listdir(file):
 homo1 = np.identity(4)
 t1 = np.array([[0, 0, 0, 1]])
 t1 = t1.T
-length = 1700
+length = len(frames1) - 1
 for index in range(19, length):  # len(frames1) - 1 if read all frames
     img1 = cv2.imread("%s%s" % (file, frames1[index]), 0)
     distort1 = undistortImg(img1)
@@ -93,18 +95,12 @@ for index in range(19, length):  # len(frames1) - 1 if read all frames
     # plt.scatter(p1[0][0], -p1[2][0], color='r')
     l.append([p1[0][0], -p1[2][0]])
 
-    if index % 10 == 0:
+    if index % 50 == 0:
         print(index)
 
-saveVar(l, 'visited points')
+saveVar(l, 'AllPointsBI')
 
-for index in range(19, length):  # len(frames1) - 1 if read all frames
-    img1 = cv2.imread("%s%s" % (file, frames1[index]), 0)
+showTracking('standard points', 'AllPointsBI')
 
-    plt.scatter(l[index - 19][0], l[index - 19][1], color='r')
-
-    plt.pause(0.00001)
-
-    cv2.imshow('img1', img1)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        cv2.destroyAllWindows()
+plt.show()
+print('Please click on the graph to end the program')
